@@ -1,4 +1,4 @@
-# 数据字典 (Data Dictionary)
+# 数据字典（Data Dictionary）
 
 ## customers（客户表）
 
@@ -8,7 +8,7 @@
 | Customer_Name | VARCHAR(100) | YES | 客户姓名 |
 | Gender | VARCHAR(10) | YES | 性别（male/female） |
 | Age | INT | YES | 客户年龄 |
-| Age_Group | VARCHAR(20) | YES | 年龄段分组（18-25, 26-35等） |
+| Age_Group | VARCHAR(20) | YES | 年龄段分组（18-25，26-35等） |
 | Date_of_Birth | DATE | YES | 出生日期 |
 | Email | VARCHAR(100) | YES | 电子邮箱 |
 | Customer_Tier | VARCHAR(20) | YES | 会员等级（Gold/Platinum/Silver） |
@@ -32,8 +32,8 @@
 | 字段名 | 类型 | 允许空 | 说明 |
 |--------|------|--------|------|
 | Order_ID | VARCHAR(50) | NO | 订单号（主键） |
-| Customer_ID | VARCHAR(50) | YES | 客户ID（外键→customers） |
-| Product_ID | VARCHAR(50) | YES | 产品ID（外键→products） |
+| Customer_ID | VARCHAR(50) | YES | 客户ID（外键 → customers） |
+| Product_ID | VARCHAR(50) | YES | 产品ID（外键 → products） |
 | Order_Date | DATE | YES | 下单日期 |
 | Order_Time | TIME | YES | 下单时间 |
 | Delivery_Date | DATE | YES | 送达日期 |
