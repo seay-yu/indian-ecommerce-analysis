@@ -16,9 +16,15 @@
 - **许可协议**：CC0: Public Domain（公有领域）
 - **数据规模**：25 万条销售记录 | 4 万名客户 | 2,000 款产品
 - **表结构**：
-  - `customers`：客户主数据（含年龄、会员等级、消费总额）
-  - `products`：产品主数据（含品类、品牌、价格、评分）
-  - `sales`：销售订单明细（含订单日期、金额、物流状态）
+  - `customers`：客户主数据，记录客户个人信息、会员等级（Gold/Platinum/Silver）及历史消费汇总
+  - `products`：产品主数据，记录产品品类、品牌、定价及用户评分
+  - `sales`：销售订单明细，记录每笔交易的订单信息、支付方式、物流状态及客户评价
+📄 完整字段定义：[data_dictionary.md](data_dictionary.md)
+
+**关键外键关系**：
+- `sales.Customer_ID` → `customers.Customer_ID`
+- `sales.Product_ID` → `products.Product_ID`
+  
 
 ---
 
@@ -120,5 +126,5 @@ indian-ecommerce-analysis/
 ---
 
 **项目创建时间**：2026-08-29  
-**作者**：[你的姓名]  
-**GitHub**：[github.com/你的用户名/indian-ecommerce-analysis](https://github.com/你的用户名/indian-ecommerce-analysis)
+**作者**：[彭显余]  
+**GitHub**：[github.com/seay-yu/indian-ecommerce-analysis](https://github.com/seay-yu/indian-ecommerce-analysis)
