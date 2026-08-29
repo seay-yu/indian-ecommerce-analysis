@@ -4,14 +4,16 @@
 
 **项目简介**：基于 Kaggle 公开数据集，对印度电商平台的 25 万条销售记录进行多维度 SQL 分析，涵盖客户分层、产品表现、物流效率三大方向，输出可落地的业务洞察与改善建议。
 
-**数据库**：MySQL 8.0 | 数据库名：`indian_ecommerce`
+**数据库**：MySQL 8.0 | 数据库名：`indian_ecommerce_project`
 
 ---
 
 ## 📁 数据来源
 
 - **数据集名称**：Indian E-Commerce Sales Analytics Dataset
+- **作者**：[Jatin Khandelwal](https://www.kaggle.com/jatinkhandelwal112)
 - **来源平台**：[Kaggle](https://www.kaggle.com/datasets/jatinkhandelwal112/indian-e-commerce-sales-analytics-dataset)
+- **许可协议**：CC0: Public Domain（公有领域）
 - **数据规模**：25 万条销售记录 | 4 万名客户 | 2,000 款产品
 - **表结构**：
   - `customers`：客户主数据（含年龄、会员等级、消费总额）
@@ -118,5 +120,5 @@ indian-ecommerce-analysis/
 ---
 
 **项目创建时间**：2026-08-29  
-**作者**：[彭显余]  
-**GitHub**：[github.com/seay-yu/indian-ecommerce-analysis](https://github.com/seay-yu/indian-ecommerce-analysis)
+**作者**：[你的姓名]  
+**GitHub**：[github.com/你的用户名/indian-ecommerce-analysis](https://github.com/你的用户名/indian-ecommerce-analysis)
