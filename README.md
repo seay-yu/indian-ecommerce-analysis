@@ -119,4 +119,4 @@ indian-ecommerce-analysis/
 
 **项目创建时间**：2026-08-29  
 **作者**：[彭显余]  
-**GitHub**：[github.com/seay/indian-ecommerce-analysis](https://github.com/seay/indian-ecommerce-analysis)
+**GitHub**：[github.com/seay-yu/indian-ecommerce-analysis](https://github.com/seay-yu/indian-ecommerce-analysis)
