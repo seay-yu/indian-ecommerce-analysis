@@ -8,7 +8,7 @@
 | Customer_Name | VARCHAR(100) | YES | 客户姓名 |
 | Gender | VARCHAR(10) | YES | 性别（male/female） |
 | Age | INT | YES | 客户年龄 |
-| Age_Group | VARCHAR(20) | YES | 年龄段分组（18-25，26-35等） |
+| Age_Group | VARCHAR(20) | YES | 年龄段分组（18-25, 26-35等） |
 | Date_of_Birth | DATE | YES | 出生日期 |
 | Email | VARCHAR(100) | YES | 电子邮箱 |
 | Customer_Tier | VARCHAR(20) | YES | 会员等级（Gold/Platinum/Silver） |
