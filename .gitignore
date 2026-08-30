@@ -1,0 +1,12 @@
+# Windows系统临时文件
+Thumbs.db
+*.tmp
+
+# 日志文件
+*.log
+
+# 屏蔽全部原始表格数据，数据集在README提供外部链接下载
+*.csv
+*.xlsx
+*.xls
+excel/*.xlsx
