@@ -170,6 +170,44 @@ ORDER BY 占比差异 DESC;
 -- 分析维度：贡献占比 + 人均消费倍数 + 流失损失测算 + Q2动态验证 + RFM交叉验证
 -- ================================================================
 
+-- ================================================================
+-- CEO 核心数据表②：各等级客户销售贡献 + 活跃率（合成表）
+-- 用途：将 2.1 和 2.3 的核心指标合并为一张表，直接交付 CEO
+-- 数据口径：基于同一份 customers 表 LEFT JOIN sales，口径一致
+-- ================================================================
+WITH 
+sales_contribution AS (
+    SELECT 
+        c.Customer_Tier,
+        COUNT(DISTINCT c.Customer_ID) AS customer_count,
+        ROUND(COUNT(DISTINCT c.Customer_ID) / (SELECT COUNT(*) FROM customers) * 100, 2) AS customer_pct,
+        COUNT(DISTINCT s.Order_ID) AS order_count,
+        ROUND(SUM(s.Total_Amount), 2) AS total_revenue,
+        ROUND(SUM(s.Total_Amount) / (SELECT SUM(Total_Amount) FROM sales) * 100, 2) AS revenue_share_pct,
+        ROUND(AVG(s.Total_Amount), 2) AS avg_order_value,
+        ROUND(SUM(s.Total_Amount) / COUNT(DISTINCT c.Customer_ID), 2) AS revenue_per_customer
+    FROM customers c
+    LEFT JOIN sales s ON c.Customer_ID = s.Customer_ID
+    GROUP BY c.Customer_Tier
+),
+active_rate AS (
+    SELECT 
+        c.Customer_Tier,
+        ROUND(COUNT(DISTINCT CASE WHEN s.Order_ID IS NOT NULL THEN c.Customer_ID END) / COUNT(DISTINCT c.Customer_ID) * 100, 2) AS active_rate_pct
+    FROM customers c
+    LEFT JOIN sales s ON c.Customer_ID = s.Customer_ID
+    GROUP BY c.Customer_Tier
+)
+SELECT 
+    sc.Customer_Tier AS 客户等级,
+    sc.customer_pct AS 客户占比,
+    sc.revenue_share_pct AS 销售额占比,
+    sc.avg_order_value AS 客单价,
+    sc.revenue_per_customer AS 人均消费,
+    ar.active_rate_pct AS 活跃率
+FROM sales_contribution sc
+LEFT JOIN active_rate ar ON sc.Customer_Tier = ar.Customer_Tier
+ORDER BY sc.revenue_share_pct DESC;
 
 -- 2.1 各等级客户销售贡献（核心查询）
 -- 用途：回答 CEO 核心问题 — Platinum 贡献了多少销售额？
