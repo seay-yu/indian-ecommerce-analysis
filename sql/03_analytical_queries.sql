@@ -9,7 +9,7 @@
 -- 数据库：indian_ecommerce_project
 -- 作者：彭显余 (GitHub: seay-yu)
 -- 创建时间：2026-08-29
--- 更新时间：2026-08-31
+-- 更新时间：2026-09-01
 -- ================================================================
 
 
@@ -88,7 +88,6 @@ q2_2026 AS (
       AND State IS NOT NULL
     GROUP BY State
 )
--- 全连接：保留 2025 和 2026 所有邦
 SELECT 
     COALESCE(a.State, b.State) AS State,
     COALESCE(a.order_count_2025, 0) AS order_count_2025,
@@ -167,47 +166,9 @@ ORDER BY 占比差异 DESC;
 -- 板块二：客户结构分析
 -- 核心问题：Platinum 客户是否值得维护？
 -- CEO 问题："我们花那么多钱维护 Platinum 客户，真的值得吗？"
--- 分析维度：贡献占比 + 人均消费倍数 + 流失损失测算 + Q2动态验证 + RFM交叉验证
+-- 分析维度：贡献占比 + 人均消费倍数 + 流失损失测算 + RFM交叉验证
 -- ================================================================
 
--- ================================================================
--- CEO 核心数据表②：各等级客户销售贡献 + 活跃率（合成表）
--- 用途：将 2.1 和 2.3 的核心指标合并为一张表，直接交付 CEO
--- 数据口径：基于同一份 customers 表 LEFT JOIN sales，口径一致
--- ================================================================
-WITH 
-sales_contribution AS (
-    SELECT 
-        c.Customer_Tier,
-        COUNT(DISTINCT c.Customer_ID) AS customer_count,
-        ROUND(COUNT(DISTINCT c.Customer_ID) / (SELECT COUNT(*) FROM customers) * 100, 2) AS customer_pct,
-        COUNT(DISTINCT s.Order_ID) AS order_count,
-        ROUND(SUM(s.Total_Amount), 2) AS total_revenue,
-        ROUND(SUM(s.Total_Amount) / (SELECT SUM(Total_Amount) FROM sales) * 100, 2) AS revenue_share_pct,
-        ROUND(AVG(s.Total_Amount), 2) AS avg_order_value,
-        ROUND(SUM(s.Total_Amount) / COUNT(DISTINCT c.Customer_ID), 2) AS revenue_per_customer
-    FROM customers c
-    LEFT JOIN sales s ON c.Customer_ID = s.Customer_ID
-    GROUP BY c.Customer_Tier
-),
-active_rate AS (
-    SELECT 
-        c.Customer_Tier,
-        ROUND(COUNT(DISTINCT CASE WHEN s.Order_ID IS NOT NULL THEN c.Customer_ID END) / COUNT(DISTINCT c.Customer_ID) * 100, 2) AS active_rate_pct
-    FROM customers c
-    LEFT JOIN sales s ON c.Customer_ID = s.Customer_ID
-    GROUP BY c.Customer_Tier
-)
-SELECT 
-    sc.Customer_Tier AS 客户等级,
-    sc.customer_pct AS 客户占比,
-    sc.revenue_share_pct AS 销售额占比,
-    sc.avg_order_value AS 客单价,
-    sc.revenue_per_customer AS 人均消费,
-    ar.active_rate_pct AS 活跃率
-FROM sales_contribution sc
-LEFT JOIN active_rate ar ON sc.Customer_Tier = ar.Customer_Tier
-ORDER BY sc.revenue_share_pct DESC;
 
 -- 2.1 各等级客户销售贡献（核心查询）
 -- 用途：回答 CEO 核心问题 — Platinum 贡献了多少销售额？
@@ -260,65 +221,59 @@ ORDER BY avg_orders_per_customer DESC;
 
 
 -- ================================================================
--- 补充分析一：Q2 动态等级划分验证
--- 用途：验证全量结论在 Q2 单季度是否同样成立
--- 方法：基于 Q2 消费金额分位数动态划分等级（前20%为Platinum）
--- 注意：PERCENT_RANK 并列值会导致实际分层占比偏离 20%/30%/50%
+-- CEO 核心数据表②：各等级客户销售贡献 + 活跃率 + 复购率（合成表）
+-- 用途：将 2.1、2.3、复购率合并为一张表，直接交付 CEO
+-- 数据口径：全量历史数据，截至 2026-06-30
 -- ================================================================
 
 WITH 
-q2_total AS (
-    SELECT SUM(Total_Amount) AS total_revenue
-    FROM sales
-    WHERE Order_Date BETWEEN '2026-04-01' AND '2026-06-30'
-),
-q2_spend AS (
+sales_contribution AS (
     SELECT 
-        c.Customer_ID,
-        SUM(s.Total_Amount) AS q2_spend
+        c.Customer_Tier,
+        ROUND(COUNT(DISTINCT c.Customer_ID) / (SELECT COUNT(*) FROM customers) * 100, 2) AS customer_pct,
+        ROUND(SUM(s.Total_Amount) / (SELECT SUM(Total_Amount) FROM sales) * 100, 2) AS revenue_share_pct,
+        ROUND(AVG(s.Total_Amount), 2) AS avg_order_value,
+        ROUND(SUM(s.Total_Amount) / COUNT(DISTINCT c.Customer_ID), 2) AS revenue_per_customer
     FROM customers c
-    JOIN sales s ON c.Customer_ID = s.Customer_ID
-    WHERE s.Order_Date BETWEEN '2026-04-01' AND '2026-06-30'
-    GROUP BY c.Customer_ID
+    LEFT JOIN sales s ON c.Customer_ID = s.Customer_ID
+    GROUP BY c.Customer_Tier
 ),
-q2_rank AS (
+active_rate AS (
     SELECT 
-        Customer_ID,
-        q2_spend,
-        PERCENT_RANK() OVER (ORDER BY q2_spend) AS pct_rank
-    FROM q2_spend
+        c.Customer_Tier,
+        ROUND(COUNT(DISTINCT CASE WHEN s.Order_ID IS NOT NULL THEN c.Customer_ID END) / COUNT(DISTINCT c.Customer_ID) * 100, 2) AS active_rate_pct
+    FROM customers c
+    LEFT JOIN sales s ON c.Customer_ID = s.Customer_ID
+    GROUP BY c.Customer_Tier
 ),
-q2_tier AS (
+repeat_rate AS (
     SELECT 
-        Customer_ID,
-        CASE 
-            WHEN pct_rank >= 0.8 THEN 'Platinum'
-            WHEN pct_rank >= 0.5 THEN 'Gold'
-            ELSE 'Silver'
-        END AS q2_tier
-    FROM q2_rank
+        c.Customer_Tier,
+        ROUND(
+            COUNT(DISTINCT CASE 
+                WHEN (SELECT COUNT(*) FROM sales s2 WHERE s2.Customer_ID = c.Customer_ID) >= 2 
+                THEN c.Customer_ID 
+            END) / COUNT(DISTINCT c.Customer_ID) * 100, 
+        2) AS repeat_rate_pct
+    FROM customers c
+    GROUP BY c.Customer_Tier
 )
 SELECT 
-    qt.q2_tier,
-    COUNT(DISTINCT qt.Customer_ID) AS customer_count,
-    ROUND(
-        COUNT(DISTINCT qt.Customer_ID) / (SELECT COUNT(DISTINCT Customer_ID) FROM q2_spend) * 100, 
-        2
-    ) AS customer_pct,
-    ROUND(SUM(qs.q2_spend), 2) AS total_revenue,
-    ROUND(
-        SUM(qs.q2_spend) / (SELECT total_revenue FROM q2_total) * 100, 
-        2
-    ) AS revenue_share_pct,
-    ROUND(AVG(qs.q2_spend), 2) AS avg_spend_per_customer
-FROM q2_tier qt
-JOIN q2_spend qs ON qt.Customer_ID = qs.Customer_ID
-GROUP BY qt.q2_tier
-ORDER BY total_revenue DESC;
+    sc.Customer_Tier AS 客户等级,
+    sc.customer_pct AS 客户占比,
+    sc.revenue_share_pct AS 销售额占比,
+    sc.avg_order_value AS 客单价,
+    sc.revenue_per_customer AS 人均消费,
+    ar.active_rate_pct AS 活跃率,
+    rr.repeat_rate_pct AS 复购率
+FROM sales_contribution sc
+LEFT JOIN active_rate ar ON sc.Customer_Tier = ar.Customer_Tier
+LEFT JOIN repeat_rate rr ON sc.Customer_Tier = rr.Customer_Tier
+ORDER BY sc.revenue_share_pct DESC;
 
 
 -- ================================================================
--- 补充分析二：RFM 模型交叉验证
+-- 补充分析：RFM 模型交叉验证
 -- 用途：从 R（最近购买）、F（购买频次）、M（消费金额）三维度交叉验证
 -- 版本：全量历史数据版，截止日期固定为 2026-06-30
 -- 评分阈值基于实际数据分布微调
