@@ -88,7 +88,6 @@ CEO 要求你在 Q2 经营复盘会上汇报以下内容：
 
 ## 📂 项目结构
 
-```text
 indian-ecommerce-analysis/
 ├── README.md                    # 项目说明文档
 ├── data_dictionary.md           # 数据字典
