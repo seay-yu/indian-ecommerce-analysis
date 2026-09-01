@@ -425,54 +425,104 @@ ORDER BY MIN(m_range) DESC;
 -- 板块三：履约效率分析
 -- 核心问题：Q2 更换物流商是否带来时效改善？
 -- CEO 问题："Q2 更换了 3 个邦的物流商，时效真的改善了吗？"
--- 分析方法：差值分析（Diff-in-Diff）实验组 vs 对照组
+-- 分析方法：差值分析（DID），对比 Q2 与 Q1 的时效变化
+-- 实验组：Gujarat、Haryana、UP（Q2 期间完成物流商切换）
+-- 对照组：Punjab、Tamil Nadu、Delhi（Q2 期间未更换物流商）
+-- 对照组选取原则：与实验组订单规模接近，确保 DID 可比性
+-- 时效口径：下单至送达全链路平均时效（含周末及节假日）
 -- ================================================================
 
--- 3.1 差值分析：实验组 vs 对照组
--- 实验组（更换物流商）：Gujarat、Haryana、UP
--- 对照组（未更换）：Tamil Nadu、Punjab、Delhi
--- 时间段：4-5月（旧物流商）vs 6月（新物流商）
-WITH logistics_data AS (
+USE indian_ecommerce_project;
+
+
+-- ================================================================
+-- 查询 1：CEO 核心数据表③（差值分析表）
+-- 输出：组别、Q1平均时效、Q2平均时效、变化、Q1订单量、Q2订单量
+-- 对应 README：CEO 核心数据表③
+-- ================================================================
+
+WITH 
+-- 步骤 1：按邦计算 Q1 和 Q2 的平均时效及订单量
+state_avg AS (
     SELECT 
         State,
-        Order_Date,
-        Delivery_Date,
-        DATEDIFF(Delivery_Date, Order_Date) AS delivery_days,
         CASE 
-            WHEN State IN ('Gujarat', 'Haryana', 'UP') THEN '实验组（更换物流商）'
-            WHEN State IN ('Tamil Nadu', 'Punjab', 'Delhi') THEN '对照组（未更换）'
+            WHEN State IN ('Gujarat', 'Haryana', 'UP') THEN '实验组（更换物流商，3邦）'
+            WHEN State IN ('Punjab', 'Tamil Nadu', 'Delhi') THEN '对照组（未更换，3邦）'
         END AS group_type,
-        CASE 
-            WHEN Order_Date BETWEEN '2026-04-01' AND '2026-05-31' THEN '4-5月（旧物流商）'
-            WHEN Order_Date BETWEEN '2026-06-01' AND '2026-06-30' THEN '6月（新物流商）'
-        END AS period
+        -- Q1 平均时效（2026-01-01 ~ 2026-03-31）
+        ROUND(AVG(CASE 
+            WHEN Order_Date BETWEEN '2026-01-01' AND '2026-03-31' 
+            THEN DATEDIFF(Delivery_Date, Order_Date) 
+        END), 2) AS q1_avg,
+        -- Q2 平均时效（2026-04-01 ~ 2026-06-30）
+        ROUND(AVG(CASE 
+            WHEN Order_Date BETWEEN '2026-04-01' AND '2026-06-30' 
+            THEN DATEDIFF(Delivery_Date, Order_Date) 
+        END), 2) AS q2_avg,
+        -- Q1 订单量
+        COUNT(CASE 
+            WHEN Order_Date BETWEEN '2026-01-01' AND '2026-03-31' 
+            THEN 1 
+        END) AS q1_count,
+        -- Q2 订单量
+        COUNT(CASE 
+            WHEN Order_Date BETWEEN '2026-04-01' AND '2026-06-30' 
+            THEN 1 
+        END) AS q2_count
     FROM sales
-    WHERE Order_Date BETWEEN '2026-04-01' AND '2026-06-30'
+    WHERE Order_Date BETWEEN '2026-01-01' AND '2026-06-30'
       AND Delivery_Date IS NOT NULL
-      AND State IN ('Gujarat', 'Haryana', 'UP', 'Tamil Nadu', 'Punjab', 'Delhi')
+      AND State IN ('Gujarat', 'Haryana', 'UP', 'Punjab', 'Tamil Nadu', 'Delhi')
+    GROUP BY State
 )
-SELECT 
-    group_type,
-    period,
-    ROUND(AVG(delivery_days), 2) AS avg_delivery_days,
-    COUNT(*) AS order_count
-FROM logistics_data
-WHERE period IS NOT NULL
-GROUP BY group_type, period
-ORDER BY group_type, period;
 
--- 3.2 各邦物流时效排名（全量数据）
--- 用途：作为平台整体物流基线参考
+-- 步骤 2：按组别聚合，计算组平均值（各邦平均值的平均）
+SELECT 
+    group_type AS 组别,
+    ROUND(AVG(q1_avg), 2) AS `Q1平均时效（天）`,
+    ROUND(AVG(q2_avg), 2) AS `Q2平均时效（天）`,
+    ROUND(ROUND(AVG(q2_avg), 2) - ROUND(AVG(q1_avg), 2), 2) AS `变化（天）`,
+    ROUND(AVG(q1_count), 0) AS `Q1订单量`,
+    ROUND(AVG(q2_count), 0) AS `Q2订单量`
+FROM state_avg
+WHERE group_type IS NOT NULL
+GROUP BY group_type
+ORDER BY `Q1平均时效（天）` DESC;
+
+
+-- ================================================================
+-- 查询 2：Q2 各邦物流时效排名
+-- 对应 README 折叠块「Q2 各邦物流时效排名」
+-- ================================================================
+
 SELECT 
     State,
     ROUND(AVG(DATEDIFF(Delivery_Date, Order_Date)), 2) AS avg_delivery_days,
     COUNT(*) AS order_count
 FROM sales
-WHERE Order_Date IS NOT NULL 
+WHERE Order_Date BETWEEN '2026-04-01' AND '2026-06-30'
   AND Delivery_Date IS NOT NULL
   AND State IS NOT NULL
 GROUP BY State
-ORDER BY avg_delivery_days DESC;
+ORDER BY avg_delivery_days ASC;
+
+
+-- ================================================================
+-- 查询 3：Q1 各邦物流时效排名
+-- 对应 README 折叠块「Q1 各邦物流时效排名」
+-- ================================================================
+
+SELECT 
+    State,
+    ROUND(AVG(DATEDIFF(Delivery_Date, Order_Date)), 2) AS avg_delivery_days,
+    COUNT(*) AS order_count
+FROM sales
+WHERE Order_Date BETWEEN '2026-01-01' AND '2026-03-31'
+  AND Delivery_Date IS NOT NULL
+  AND State IS NOT NULL
+GROUP BY State
+ORDER BY avg_delivery_days ASC;
 
 
 -- ================================================================
