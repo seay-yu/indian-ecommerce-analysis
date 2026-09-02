@@ -93,12 +93,11 @@ indian-ecommerce-analysis/
 ├── data_dictionary.md           # 数据字典
 ├── .gitignore                   # Git 忽略文件配置
 ├── LICENSE                      # MIT 许可证
-├── assets/                      # 项目资源文件（看板截图等）
-│   └── kpi_dashboard.png        # KPI 看板总览截图
+├── kpi_dashboard.png            # KPI看板总览截图
 └── sql/
     ├── 01_schema.sql            # 建表语句
     ├── 02_data_cleaning.sql     # 数据清洗脚本
-    └── 03_analytical_queries.sql # 核心分析查询
+    └── 03_analytical_queries.sql # 核心分析查询  
 ```
 
 
@@ -535,7 +534,7 @@ Q2 三个月评分稳步上升（4.39 → 4.42），6 月达到季度最高。
 
 ### 📊 KPI 看板总览
 
-![Q2 经营分析会 KPI 看板总览](assets/kpi_dashboard.png)
+![Q2 经营分析会 KPI 看板总览](kpi_dashboard.png)
 
 
 ### 🔍 个人思考：从数据中发现的几个信号
